@@ -81,16 +81,19 @@ public abstract class DungeonCharacter implements Serializable {
      * @throws IllegalArgumentException if the opponent is null
      */
     public String attack(final DungeonCharacter theOpponent) {
+        final String result;
         if (theOpponent == null) {
             throw new IllegalArgumentException(NULL_OPPONENT_MESSAGE);
         }
         if (RANDOM.nextDouble() >= myChanceToHit) {
-            return myName + " attacks " + theOpponent.getName() + " but misses.";
+            result = myName + " attacks " + theOpponent.getName() + " but misses.";
+        } else {
+            final int damage = RANDOM.nextInt(myMaxDamage - myMinDamage + 1) + myMinDamage;
+            theOpponent.takeDamage(damage);
+            result = myName + " hits " + theOpponent.getName() + " for " + damage
+                    + " damage.";
         }
-        final int damage = RANDOM.nextInt(myMaxDamage - myMinDamage + 1) + myMinDamage;
-        theOpponent.takeDamage(damage);
-        return myName + " hits " + theOpponent.getName() + " for " + damage
-                + " damage.";
+        return result;
     }
 
     /**
