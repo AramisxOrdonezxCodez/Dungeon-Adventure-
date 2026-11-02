@@ -1,0 +1,215 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    Checkstyle configuration for the UWT "Naming and Style Guidelines for Java" (Fall 2020).
+    Section numbers in the comments refer to that document.
+    Written for Checkstyle 10.x (select a 10.x version in the CheckStyle-IDEA settings).
+-->
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java"/>
+
+    <!-- Lets you silence a specific warning with @SuppressWarnings("checkstyle:CheckName") -->
+    <module name="SuppressWarningsFilter"/>
+
+    <!-- Section 2: no tab characters in source files -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <!-- Section 5: every file starts with a non-Javadoc header comment ("/*", not "/**") -->
+    <module name="RegexpHeader">
+        <property name="header" value="^/\*(?!\*).*$"/>
+    </module>
+
+    <module name="TreeWalker">
+        <module name="SuppressWarningsHolder"/>
+
+        <!-- ============ Section 2: indentation, spacing, braces ============ -->
+
+        <!-- 4 spaces per indentation level -->
+        <module name="Indentation">
+            <property name="basicOffset" value="4"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="4"/>
+            <property name="throwsIndent" value="4"/>
+            <property name="arrayInitIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="4"/>
+        </module>
+
+        <!-- Spaces around operators, and between keywords like if/while/for and "(" -->
+        <module name="WhitespaceAround">
+            <property name="allowEmptyConstructors" value="true"/>
+            <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
+            <property name="allowEmptyLoops" value="true"/>
+            <property name="allowEmptyLambdas" value="true"/>
+        </module>
+
+        <!-- Space after commas, semicolons and casts -->
+        <module name="WhitespaceAfter"/>
+
+        <!-- No space before commas, semicolons, etc. -->
+        <module name="NoWhitespaceBefore"/>
+
+        <!-- No space between a method name and "(" : someMethod() not someMethod () -->
+        <module name="MethodParamPad"/>
+
+        <!-- No space just inside parentheses: (a, b) not ( a, b ) -->
+        <module name="ParenPad">
+            <property name="option" value="nospace"/>
+        </module>
+        <module name="TypecastParenPad"/>
+
+        <!-- Spacing for generics: List<String> -->
+        <module name="GenericWhitespace"/>
+
+        <!--
+            Brace placement: pick ONE style per project.
+              Same-line style (Figure 1): LeftCurly = eol, RightCurly = same   (current setting)
+              Next-line style (Figure 2): LeftCurly = nl,  RightCurly = alone
+        -->
+        <module name="LeftCurly">
+            <property name="option" value="eol"/>
+        </module>
+        <module name="RightCurly">
+            <property name="option" value="same"/>
+        </module>
+
+        <!-- ============ Section 3: final modifier ============ -->
+
+        <!-- Every method and constructor parameter must be final, unconditionally -->
+        <module name="FinalParameters">
+            <property name="tokens" value="METHOD_DEF, CTOR_DEF"/>
+        </module>
+
+        <!-- Local variables that are never reassigned should be final -->
+        <module name="FinalLocalVariable">
+            <property name="validateEnhancedForLoopVariable" value="true"/>
+        </module>
+
+        <!-- ============ Section 4: naming ============ -->
+
+        <!-- Classes and interfaces: InCamelCase -->
+        <module name="TypeName"/>
+
+        <!-- Methods: inCamelCase -->
+        <module name="MethodName"/>
+
+        <!-- static final constants: IN_ALL_CAPS, but not starting with MY_ or THE_ -->
+        <module name="ConstantName">
+            <property name="format" value="^(?!(MY|THE)_)[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+        </module>
+
+        <!-- Instance fields: myFieldName -->
+        <module name="MemberName">
+            <property name="format" value="^my[A-Z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- Non-final static fields (not covered explicitly by the guide): treated like fields, myFieldName -->
+        <module name="StaticVariableName">
+            <property name="format" value="^my[A-Z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- Method parameters: theName, or lowercase camel case ending with a digit (thing1) -->
+        <module name="ParameterName">
+            <property name="format" value="^(the[A-Z][a-zA-Z0-9]*|[a-z][a-zA-Z0-9]*[0-9])$"/>
+        </module>
+
+        <!-- Local variables: inCamelCase with no leading my or the -->
+        <module name="LocalVariableName">
+            <property name="format" value="^(?!(my|the)[A-Z])[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <module name="LocalFinalVariableName">
+            <property name="format" value="^(?!(my|the)[A-Z])[a-z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- ============ Section 5: Javadoc on everything, not just public ============ -->
+
+        <module name="MissingJavadocType">
+            <property name="scope" value="private"/>
+        </module>
+        <module name="MissingJavadocMethod">
+            <property name="scope" value="private"/>
+            <property name="allowMissingPropertyJavadoc" value="false"/>
+        </module>
+        <!-- Fields (checks all access levels by default) -->
+        <module name="JavadocVariable"/>
+
+        <!-- Class Javadoc must include @author and @version (see Figure 3) -->
+        <module name="JavadocType">
+            <property name="authorFormat" value="\S"/>
+            <property name="versionFormat" value="\S"/>
+        </module>
+
+        <!-- @param / @return tags must be present and correct -->
+        <module name="JavadocMethod"/>
+        <module name="JavadocStyle"/>
+
+        <!-- ============ Section 6: imports ============ -->
+
+        <!-- Groups: java.*, blank line, javax.*, blank line, everything else; alphabetical within groups -->
+        <module name="CustomImportOrder">
+            <property name="customImportOrderRules"
+                      value="STANDARD_JAVA_PACKAGE###SPECIAL_IMPORTS###THIRD_PARTY_PACKAGE"/>
+            <property name="standardPackageRegExp" value="^java\."/>
+            <property name="specialImportsRegExp" value="^javax\."/>
+            <property name="separateLineBetweenGroups" value="true"/>
+            <property name="sortImportsInGroupAlphabetically" value="true"/>
+        </module>
+
+        <!-- ============ Section 7: code organization ============ -->
+
+        <!-- static fields, then instance fields, then constructors, then methods;
+             fields ordered public, protected, package, private -->
+        <module name="DeclarationOrder"/>
+
+        <!-- Inner and nested classes come after all fields and methods -->
+        <module name="InnerTypeLast"/>
+
+        <!-- ============ Section 8: miscellaneous ============ -->
+
+        <!-- At most one return per method (equals() is exempt by default) -->
+        <module name="ReturnCount">
+            <property name="max" value="1"/>
+            <property name="maxForVoid" value="1"/>
+        </module>
+
+        <!-- Deeply nested if statements -->
+        <module name="NestedIfDepth">
+            <property name="max" value="2"/>
+        </module>
+
+        <!-- Too many if/case branches in one method -->
+        <module name="CyclomaticComplexity">
+            <property name="max" value="10"/>
+        </module>
+
+        <!-- Exceptionally long methods and constructors (tune as needed) -->
+        <module name="MethodLength">
+            <property name="max" value="100"/>
+        </module>
+
+        <!-- Exceptionally long classes (tune as needed) -->
+        <module name="ExecutableStatementCount">
+            <property name="max" value="50"/>
+        </module>
+
+        <!-- Magic numbers (-1, 0, 1, 2 allowed by default) -->
+        <module name="MagicNumber"/>
+
+        <!-- Magic strings: the same literal repeated instead of a constant -->
+        <module name="MultipleStringLiterals">
+            <property name="allowedDuplicates" value="1"/>
+        </module>
+    </module>
+
+    <!-- Section 8: exceptionally long classes/files (tune as needed) -->
+    <module name="FileLength">
+        <property name="max" value="1000"/>
+    </module>
+</module>
