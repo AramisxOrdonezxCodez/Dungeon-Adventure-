@@ -7,13 +7,13 @@ package model;
 import java.util.Random;
 
 /**
- * The player's character. Heroes may block incoming attacks
+ * The player's character. Heroes may block incoming attacks.
  * and carry an inventory of items such as healing potions.
  *
  * @author Zachary Adams
  * @version 2026-11-01
  */
-public class Hero extends DungeonCharacter {
+public abstract class Hero extends DungeonCharacter {
 
     /** Item name that identifies a healing potion in the inventory. */
     public static final String HEALING_POTION_NAME = "Healing Potion";
@@ -72,6 +72,14 @@ public class Hero extends DungeonCharacter {
             super.takeDamage(theAmount);
         }
     }
+
+    /**
+     * Uses this hero's special skill against an opponent.
+     *
+     * @param theOpponent the character being fought
+     * @return a message describing what happened
+     */
+    public abstract String specialSkill(DungeonCharacter theOpponent);
 
     /**
      * Drinks a healing potion from the inventory, if there is one,
