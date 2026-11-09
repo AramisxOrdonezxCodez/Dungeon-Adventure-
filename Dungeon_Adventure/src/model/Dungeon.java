@@ -86,6 +86,63 @@ public class Dungeon implements Serializable {
         return myRooms[theRow][theColumn];
     }
 
+
+    /**
+     * Reveals the current room and the eight
+     * surrounding rooms when using a vision potion.
+     *
+     * @param theRow the hero's current row
+     * @param theColumn the hero's current column
+     */
+    public void revealSurroundingRooms(final int theRow,
+                                       final int theColumn) {
+
+        // Make sure the starting position is valid.
+        getRoom(theRow, theColumn);
+
+        for (int row = theRow - 1; row <= theRow + 1; row++) {
+            for (int column = theColumn - 1;
+                 column <= theColumn + 1; column++) {
+
+                // Check that the room is inside the dungeon.
+                if (row >= 0 && row < myRooms.length
+                        && column >= 0
+                        && column < myRooms[row].length) {
+
+                    myRooms[row][column].reveal();
+                }
+            }
+        }
+    }
+
+    /**
+     * Uses a vision potion to reveal nearby rooms.
+     *
+     * @param theHero the hero using the potion
+     * @param theRow the hero's current row
+     * @param theColumn the hero's current column
+     * @return true if a potion was used
+     */
+    public boolean useVisionPotion(final Hero theHero,
+                                   final int theRow,
+                                   final int theColumn) {
+
+        if (theHero == null) {
+            throw new IllegalArgumentException("Hero cannot be null.");
+        }
+
+        // Validate coordinates before consuming the potion.
+        getRoom(theRow, theColumn);
+
+        if (theHero.getInventory().useVisionPotion()) {
+            revealSurroundingRooms(theRow, theColumn);
+            return true;
+        }
+
+        return false;
+    }
+
+
     /**
      * Places the entrance, exit, and each pillar in distinct randomly chosen rooms.
      * Called before passage generation; selecting and removing positions prevents overlap.

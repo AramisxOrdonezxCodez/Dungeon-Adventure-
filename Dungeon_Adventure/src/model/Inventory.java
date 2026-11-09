@@ -25,6 +25,24 @@ public class Inventory implements Serializable  {
         return myItems.remove(theItem);
     }
 
+
+    /**
+     * Uses a vision potion from the inventory.
+     *
+     * @return true if a vision potion was used,
+     *         false if none were available
+     */
+    public boolean useVisionPotion() {
+        for (final Item item : getItems()) {
+            if ("Vision Potion".equals(item.getName())) {
+                return removeItem(item);
+            }
+        }
+
+        return false;
+    }
+
+
     // Returns a copy of the inventory items.
     public List<Item> getItems() {
         return new ArrayList<>(myItems);
