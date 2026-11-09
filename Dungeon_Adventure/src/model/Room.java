@@ -119,14 +119,73 @@ public class Room implements Serializable {
         return myHasHealingPotion;
     }
 
+
+    /**
+     * Collects a healing potion from the room
+     * and adds it to the hero's inventory.
+     *
+     * @param theHero the hero collecting the potion
+     * @return true if a potion was collected
+     */
+    public boolean collectHealingPotion(final Hero theHero) {
+        if (theHero == null) {
+            throw new IllegalArgumentException("Hero cannot be null.");
+        }
+
+        if (!myHasHealingPotion) {
+            return false;
+        }
+
+        Item healingPotion = new Item(
+                Hero.HEALING_POTION_NAME,
+                "Restores 5-15 health points."
+        );
+
+        theHero.getInventory().addItem(healingPotion);
+        myHasHealingPotion = false;
+
+        return true;
+    }
+
+
     /**
      * Reports whether this room contains a vision potion.
      *
      * @return true if a vision potion is present; false otherwise
      */
     public boolean getMyHasVisionPotion() {
+
         return myHasVisionPotion;
     }
+
+
+    /**
+     * Collects a vision potion from the room
+     * and adds it to the hero's inventory.
+     *
+     * @param theHero the hero collecting the potion
+     * @return true if a potion was collected
+     */
+    public boolean collectVisionPotion(final Hero theHero) {
+        if (theHero == null) {
+            throw new IllegalArgumentException("Hero cannot be null.");
+        }
+
+        if (!myHasVisionPotion) {
+            return false;
+        }
+
+        final Item visionPotion = new Item(
+                "Vision Potion",
+                "Reveals nearby rooms in the dungeon."
+        );
+
+        theHero.getInventory().addItem(visionPotion);
+        myHasVisionPotion = false;
+
+        return true;
+    }
+
 
     /**
      * Reports whether this room contains a pit.
