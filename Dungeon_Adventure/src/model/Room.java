@@ -11,10 +11,10 @@ import java.util.Random;
 /**
  * Represents a dungeon room with doors and randomly generated contents.
  * Potion presence, pit presence, and pit damage are determined at construction.
- * Item effects are handled by other classes; collection and monster integration remain.
+ * Stores a monster supplied by the game; item collection and effects remain separate.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-01
+ * @version 2026-11-08
  */
 public class Room implements Serializable {
 
@@ -57,12 +57,13 @@ public class Room implements Serializable {
     /** Pillar stored in this room, or null when no pillar is present. */
     private Pillar myPillar;
 
+    /** Monster in this room, or null when no monster is present. */
+    private Monster myMonster;
+
     /** Whether this room has been revealed to the player. */
     private boolean myIsVisible;
 
-    // Waiting for teammates' Monster, Hero, and Inventory classes.
-    // TODO: Add monster storage, placement, access, and removal in Room.
-    //       Keep entrance and exit rooms free of monsters.
+    // TODO: Connect monster placement when the team's spawning rules are ready.
     // TODO: Add methods to remove collected potions and pillars from Room.
     // TODO: Connect Room's contents and pit damage to teammates' code.
     //       Teammates' classes handle item effects and changes to the hero.
@@ -240,6 +241,40 @@ public class Room implements Serializable {
     }
 
     /**
+     * Returns the monster currently in this room.
+     *
+     * @return the monster, or null when no monster is present
+     */
+    public Monster getMonster() {
+        return myMonster;
+    }
+
+    /**
+     * Stores a supplied monster, replacing any monster already in this room.
+     *
+     * @param theMonster the monster to store, or null to clear the room
+     * @throws IllegalStateException if adding a monster to an entrance or exit
+     */
+    public void setMonster(final Monster theMonster) {
+        if (theMonster != null && (myIsEntrance || myIsExit)) {
+            throw new IllegalStateException(
+                    "An entrance or exit cannot contain a monster.");
+        }
+        myMonster = theMonster;
+    }
+
+    /**
+     * Removes the monster from this room without changing its health.
+     *
+     * @return the removed monster, or null if there was no monster
+     */
+    public Monster removeMonster() {
+        final Monster monster = myMonster;
+        myMonster = null;
+        return monster;
+    }
+
+    /**
      * Marks this room as revealed to the player.
      * Dungeon and view code decide which rooms to reveal and display.
      */
@@ -274,7 +309,7 @@ public class Room implements Serializable {
      * Removes all current room contents while preserving doors and room designations.
      */
     private void clearContents() {
-        // TODO: Clear the stored monster here once the Monster field is added.
+        myMonster = null;
         myHasHealingPotion = false;
         myHasVisionPotion = false;
         myHasPit = false;
