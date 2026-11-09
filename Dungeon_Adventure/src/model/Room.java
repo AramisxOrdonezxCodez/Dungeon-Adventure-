@@ -65,8 +65,8 @@ public class Room implements Serializable {
 
     // TODO: Connect monster placement when the team's spawning rules are ready.
     // TODO: Add methods to remove collected potions and pillars from Room.
-    // TODO: Connect Room's contents and pit damage to teammates' code.
-    //       Teammates' classes handle item effects and changes to the hero.
+    // TODO: Call applyPit when the team's movement code enters a room.
+    //       Potion effects remain pending the team's Item code.
 
     /** Whether this room is the dungeon entrance. */
     private boolean myIsEntrance;
@@ -145,6 +145,23 @@ public class Room implements Serializable {
      */
     public int getMyPitDamage() {
         return myPitDamage;
+    }
+
+    /**
+     * Applies this room's pit damage to the hero if a pit is present.
+     * Changes hit points directly so combat blocking does not prevent pit damage.
+     * Hit points cannot fall below zero. Each call represents one pit encounter.
+     *
+     * @param theHero the hero encountering the room
+     * @throws IllegalArgumentException if the hero is null
+     */
+    public void applyPit(final Hero theHero) {
+        if (theHero == null) {
+            throw new IllegalArgumentException("Hero must not be null.");
+        }
+        if (myHasPit) {
+            theHero.setHitPoints(theHero.getHitPoints() - myPitDamage);
+        }
     }
 
     /**
