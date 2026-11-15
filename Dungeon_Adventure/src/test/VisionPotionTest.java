@@ -3,6 +3,7 @@ package test;
 import model.Dungeon;
 import model.Hero;
 import model.Item;
+import model.Warrior;
 
 import org.junit.jupiter.api.Test;
 
@@ -88,14 +89,9 @@ public class VisionPotionTest {
         assertFalse(dungeon.getRoom(2, 2).isVisible());
     }*/
 
-    /**
-     * Creates a hero for testing.
-     */
-    /*
     private Hero createTestHero() {
-        return new Hero("Test Hero", 100, 4,
-                0.8, 20, 40, 0.2);
-    }*/
+        return new Warrior("Test Hero");
+    }
 }
 
 
