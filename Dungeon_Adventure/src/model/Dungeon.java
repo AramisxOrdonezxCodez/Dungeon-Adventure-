@@ -11,10 +11,10 @@ import java.util.Random;
 
 /**
  * Stores a grid of rooms connected by randomly generated maze passages.
- * Places special rooms and pillars, validates connectivity, and displays the full map.
+ * Places special rooms, pillars, and monsters, validates connectivity, and draws the map.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-01
+ * @version 2026-11-14
  */
 public class Dungeon implements Serializable {
 
@@ -30,7 +30,13 @@ public class Dungeon implements Serializable {
     /** Number of text lines used to draw one room. */
     private static final int ROOM_DRAWING_HEIGHT = 3;
 
-    /** Random number generator used for special-room placement. */
+    /** Drawing used to hide an unrevealed room's doors and contents. */
+    private static final String HIDDEN_ROOM = "???\n???\n???";
+
+    /** Number of monster types available for room placement. */
+    private static final int MONSTER_TYPES = 3;
+
+    /** Random number generator used for special-room and monster placement. */
     private static final Random RANDOM = new Random();
 
     /** Row of the entrance. */
@@ -42,11 +48,10 @@ public class Dungeon implements Serializable {
     /** Rooms indexed by row and then column. */
     private final Room[][] myRooms;
 
-    // TODO: Add surrounding-room lookup for vision integration.
-
     /**
      * Creates a five-by-five grid and connects its rooms using randomized DFS.
-     * Assigns special rooms before carving passages between them.
+     * Assigns special rooms and monsters before carving passages between rooms.
+     * Each ordinary room receives its own randomly chosen monster.
      * Retries generation until every room is reachable.
      */
     public Dungeon() {
@@ -54,6 +59,7 @@ public class Dungeon implements Serializable {
         do {
             createRooms();
             placeSpecialRooms();
+            placeMonsters();
             final MazeGenerator generator = new MazeGenerator(myRooms);
             generator.generate();
         } while (!isTraversable());
@@ -68,6 +74,24 @@ public class Dungeon implements Serializable {
                 myRooms[row][column] = new Room();
             }
         }
+    }
+
+    /**
+     * Returns the number of rows in the dungeon.
+     *
+     * @return the row count
+     */
+    public int getRowCount() {
+        return myRooms.length;
+    }
+
+    /**
+     * Returns the number of columns in the dungeon.
+     *
+     * @return the column count
+     */
+    public int getColumnCount() {
+        return myRooms[0].length;
     }
 
     /**
@@ -93,6 +117,7 @@ public class Dungeon implements Serializable {
      *
      * @param theRow the hero's current row
      * @param theColumn the hero's current column
+     * @throws IllegalArgumentException if the coordinates are outside the dungeon
      */
     public void revealSurroundingRooms(final int theRow,
                                        final int theColumn) {
@@ -121,7 +146,8 @@ public class Dungeon implements Serializable {
      * @param theHero the hero using the potion
      * @param theRow the hero's current row
      * @param theColumn the hero's current column
-     * @return true if a potion was used
+     * @return true if a potion was used; false if none was available
+     * @throws IllegalArgumentException if the hero is null or the coordinates are invalid
      */
     public boolean useVisionPotion(final Hero theHero,
                                    final int theRow,
@@ -167,6 +193,39 @@ public class Dungeon implements Serializable {
     }
 
     /**
+     * Places a new random monster in every room except the entrance and exit.
+     * Pillar rooms also receive monsters. Other room contents are preserved.
+     */
+    private void placeMonsters() {
+        for (int row = 0; row < myRooms.length; row++) {
+            for (int column = 0; column < myRooms[row].length; column++) {
+                final Room room = myRooms[row][column];
+                if (!room.getIsEntrance() && !room.getIsExit()) {
+                    room.setMonster(createRandomMonster());
+                }
+            }
+        }
+    }
+
+    /**
+     * Creates a fresh monster, giving each of the three types an equal chance.
+     *
+     * @return a new ogre, gremlin, or skeleton
+     */
+    private Monster createRandomMonster() {
+        final int choice = RANDOM.nextInt(MONSTER_TYPES);
+        final Monster monster;
+        if (choice == 0) {
+            monster = new Ogre();
+        } else if (choice == 1) {
+            monster = new Gremlin();
+        } else {
+            monster = new Skeleton();
+        }
+        return monster;
+    }
+
+    /**
      * Returns the dungeon entrance room.
      *
      * @return the entrance room
@@ -196,9 +255,29 @@ public class Dungeon implements Serializable {
      */
     @Override
     public String toString() {
+        return buildMap(true);
+    }
+
+    /**
+     * Draws the player's map, hiding unrevealed rooms with question marks.
+     * Revealed rooms show their current doors and contents. Drawing does not reveal rooms.
+     *
+     * @return the visible map without a trailing newline
+     */
+    public String toVisibleString() {
+        return buildMap(false);
+    }
+
+    /**
+     * Builds the full map or the player's visible map.
+     *
+     * @param theShowAll true to include unrevealed rooms; false to hide them
+     * @return the dungeon drawing
+     */
+    private String buildMap(final boolean theShowAll) {
         final StringBuilder result = new StringBuilder();
         for (int row = 0; row < myRooms.length; row++) {
-            appendRoomRow(result, row);
+            appendRoomRow(result, row, theShowAll);
         }
         return result.toString();
     }
@@ -208,11 +287,18 @@ public class Dungeon implements Serializable {
      *
      * @param theResult the destination for the drawing
      * @param theRow the grid row to append
+     * @param theShowAll true to draw all rooms; false to hide unrevealed rooms
      */
-    private void appendRoomRow(final StringBuilder theResult, final int theRow) {
+    private void appendRoomRow(final StringBuilder theResult, final int theRow,
+                               final boolean theShowAll) {
         final List<String[]> roomTextRows = new ArrayList<>();
         for (int column = 0; column < myRooms[theRow].length; column++) {
-            roomTextRows.add(myRooms[theRow][column].toString().split("\n"));
+            final Room room = myRooms[theRow][column];
+            String roomText = HIDDEN_ROOM;
+            if (theShowAll || room.isVisible()) {
+                roomText = room.toString();
+            }
+            roomTextRows.add(roomText.split("\n"));
         }
         for (int line = 0; line < ROOM_DRAWING_HEIGHT; line++) {
             if (theResult.length() > 0) {
@@ -229,7 +315,7 @@ public class Dungeon implements Serializable {
      * Also supports a separate traversal of existing doors to validate connectivity.
      *
      * @author Kevin Munoz-Rivera
-     * @version 2026-11-01
+     * @version 2026-11-14
      */
     private static final class MazeGenerator {
 

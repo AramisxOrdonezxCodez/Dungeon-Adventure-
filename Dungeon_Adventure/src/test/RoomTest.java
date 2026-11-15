@@ -11,7 +11,9 @@ import model.Hero;
 import model.Monster;
 import model.MonsterDefinition;
 import model.Pillar;
+import model.Priestess;
 import model.Room;
+import model.Thief;
 import model.Warrior;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +21,7 @@ import org.junit.jupiter.api.Test;
  * Basic tests for room doors and special rooms.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-08
+ * @version 2026-11-14
  */
 public class RoomTest {
 
@@ -120,41 +122,72 @@ public class RoomTest {
         return new Monster(definition);
     }
 
-    /** Checks that even a hero with guaranteed blocking takes full pit damage. */
+    /** Checks that all three hero types take the full pit damage. */
     @Test
-    void testPitDamageCannotBeBlocked() {
+    void testPitDamageForHeroTypes() {
         final Room room = createPitRoom();
-        final Hero hero = new Warrior("Test Hero");
+        final Hero[] heroes = {new Warrior("Warrior"), new Priestess("Priestess"),
+            new Thief("Thief")};
         final int damage = room.getMyPitDamage();
         assertTrue(damage >= 1 && damage <= 20);
-        hero.takeDamage(damage);
-        assertEquals(100, hero.getHitPoints());
-        room.applyPit(hero);
-        assertEquals(100 - damage, hero.getHitPoints());
+        for (final Hero hero : heroes) {
+            final int healthBefore = hero.getHitPoints();
+            room.applyPit(hero);
+            assertEquals(healthBefore - damage, hero.getHitPoints());
+        }
         assertTrue(room.getMyHasPit());
         assertEquals(damage, room.getMyPitDamage());
     }
 
-    /** Checks that lethal pit damage stops at zero hit points. */
+    /** Checks that pit damage never calls the combat method that allows blocking. */
+    @Test
+    void testPitDamageCannotBeBlocked() {
+        final Room room = createPitRoom();
+        final Warrior hero = new Warrior("Test Warrior") {
+            /**
+             * Fails if pit damage is sent through the combat damage method.
+             *
+             * @param theAmount the attempted combat damage
+             */
+            @Override
+            public void takeDamage(final int theAmount) {
+                fail("Pit damage must bypass the combat blocking method.");
+            }
+        };
+        final int healthBefore = hero.getHitPoints();
+        room.applyPit(hero);
+        assertEquals(healthBefore - room.getMyPitDamage(), hero.getHitPoints());
+    }
+
+    /** Checks that lethal pit damage stops at zero hit points for every hero type. */
     @Test
     void testPitDamageCannotMakeHealthNegative() {
         final Room room = createPitRoom();
-        final Hero hero = new Warrior("Test Hero");        room.applyPit(hero);
-        assertEquals(0, hero.getHitPoints());
-        room.applyPit(hero);
-        assertEquals(0, hero.getHitPoints());
+        final Hero[] heroes = {new Warrior("Warrior"), new Priestess("Priestess"),
+            new Thief("Thief")};
+        for (final Hero hero : heroes) {
+            hero.setHitPoints(1);
+            room.applyPit(hero);
+            assertEquals(0, hero.getHitPoints());
+            room.applyPit(hero);
+            assertEquals(0, hero.getHitPoints());
+        }
     }
 
-    /** Checks that a room without a pit leaves the hero's health unchanged. */
+    /** Checks that a room without a pit leaves each hero's health unchanged. */
     @Test
     void testNoPitDoesNotDamageHero() {
         final Room room = new Room();
         room.setMyEntrance(true);
         room.setMyEntrance(false);
-        final Hero hero = new Warrior("Test Hero");        hero.setHitPoints(50);
+        final Hero[] heroes = {new Warrior("Warrior"), new Priestess("Priestess"),
+            new Thief("Thief")};
         assertFalse(room.getMyHasPit());
-        room.applyPit(hero);
-        assertEquals(50, hero.getHitPoints());
+        for (final Hero hero : heroes) {
+            hero.setHitPoints(50);
+            room.applyPit(hero);
+            assertEquals(50, hero.getHitPoints());
+        }
     }
 
     /** Checks that a missing hero is rejected. */
@@ -180,5 +213,53 @@ public class RoomTest {
             }
         }
         throw new AssertionError("No pit generated in " + maximumAttempts + " rooms.");
+    }
+
+    /** Checks that each pillar is returned once and removed from the room drawing. */
+    @Test
+    void testCollectPillar() {
+        for (final Pillar pillar : Pillar.values()) {
+            final Room room = new Room();
+            room.setMyEntrance(true);
+            room.setMyEntrance(false);
+            room.setPillar(pillar);
+            assertEquals("***\n*" + pillar.getSymbol() + "*\n***", room.toString());
+            assertSame(pillar, room.collectPillar());
+            assertNull(room.getPillar());
+            assertNull(room.collectPillar());
+            assertEquals("***\n* *\n***", room.toString());
+        }
+    }
+
+    /** Checks that collecting from a room with no pillar returns null. */
+    @Test
+    void testCollectMissingPillar() {
+        final Room room = new Room();
+        final String before = room.toString();
+        assertNull(room.collectPillar());
+        assertEquals(before, room.toString());
+    }
+
+    /** Checks that pillar collection preserves the monster, doors, and other contents. */
+    @Test
+    void testCollectPillarPreservesOtherContents() {
+        final Room room = new Room();
+        final Monster monster = createMonster();
+        final boolean healingPotion = room.getHasHealingPotion();
+        final boolean visionPotion = room.getMyHasVisionPotion();
+        final boolean pit = room.getMyHasPit();
+        final int damage = room.getMyPitDamage();
+        room.setMonster(monster);
+        room.addDoor(Direction.NORTH);
+        room.reveal();
+        room.setPillar(Pillar.ABSTRACTION);
+        assertSame(Pillar.ABSTRACTION, room.collectPillar());
+        assertSame(monster, room.getMonster());
+        assertTrue(room.hasDoor(Direction.NORTH));
+        assertTrue(room.isVisible());
+        assertEquals(healingPotion, room.getHasHealingPotion());
+        assertEquals(visionPotion, room.getMyHasVisionPotion());
+        assertEquals(pit, room.getMyHasPit());
+        assertEquals(damage, room.getMyPitDamage());
     }
 }

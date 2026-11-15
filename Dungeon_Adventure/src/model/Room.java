@@ -14,7 +14,7 @@ import java.util.Random;
  * Stores a monster supplied by the game; item collection and effects remain separate.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-08
+ * @version 2026-11-14
  */
 public class Room implements Serializable {
 
@@ -35,6 +35,9 @@ public class Room implements Serializable {
 
     /** Error message for a missing door direction. */
     private static final String NULL_DIRECTION_MESSAGE = "Direction must not be null.";
+
+    /** Error message for a missing hero during potion collection. */
+    private static final String NULL_HERO_MESSAGE = "Hero cannot be null.";
 
     /** Random number generator shared by rooms. */
     private static final Random RANDOM = new Random();
@@ -62,11 +65,6 @@ public class Room implements Serializable {
 
     /** Whether this room has been revealed to the player. */
     private boolean myIsVisible;
-
-    // TODO: Connect monster placement when the team's spawning rules are ready.
-    // TODO: Add methods to remove collected potions and pillars from Room.
-    // TODO: Call applyPit when the team's movement code enters a room.
-    //       Potion effects remain pending the team's Item code.
 
     /** Whether this room is the dungeon entrance. */
     private boolean myIsEntrance;
@@ -129,14 +127,14 @@ public class Room implements Serializable {
      */
     public boolean collectHealingPotion(final Hero theHero) {
         if (theHero == null) {
-            throw new IllegalArgumentException("Hero cannot be null.");
+            throw new IllegalArgumentException(NULL_HERO_MESSAGE);
         }
 
         if (!myHasHealingPotion) {
             return false;
         }
 
-        Item healingPotion = new Item(
+        final Item healingPotion = new Item(
                 Hero.HEALING_POTION_NAME,
                 "Restores 5-15 health points."
         );
@@ -168,7 +166,7 @@ public class Room implements Serializable {
      */
     public boolean collectVisionPotion(final Hero theHero) {
         if (theHero == null) {
-            throw new IllegalArgumentException("Hero cannot be null.");
+            throw new IllegalArgumentException(NULL_HERO_MESSAGE);
         }
 
         if (!myHasVisionPotion) {
@@ -314,6 +312,19 @@ public class Room implements Serializable {
      */
     public Pillar getPillar() {
         return myPillar;
+    }
+
+    /**
+     * Collects the pillar from this room and removes it so it cannot be collected twice.
+     * Other room contents are unchanged. The caller stores the returned pillar
+     * in the player's collection.
+     *
+     * @return the collected pillar, or null when no pillar is present
+     */
+    public Pillar collectPillar() {
+        final Pillar pillar = myPillar;
+        myPillar = null;
+        return pillar;
     }
 
     /**
