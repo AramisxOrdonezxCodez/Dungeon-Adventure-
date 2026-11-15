@@ -2,14 +2,15 @@ package test;
 import model.Hero;
 import model.Item;
 import model.Room;
+import model.Warrior;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HealingPotionTest {
+
     private Hero createTestHero() {
-        return new Hero("Test Hero", 100, 4,
-                0.8, 20, 40, 0.2);
+        return new Warrior("Test Hero");
     }
 
     @Test

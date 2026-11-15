@@ -12,6 +12,7 @@ import model.Monster;
 import model.MonsterDefinition;
 import model.Pillar;
 import model.Room;
+import model.Warrior;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -123,7 +124,7 @@ public class RoomTest {
     @Test
     void testPitDamageCannotBeBlocked() {
         final Room room = createPitRoom();
-        final Hero hero = new Hero("Test Hero", 100, 1, 1.0, 1, 1, 1.0);
+        final Hero hero = new Warrior("Test Hero");
         final int damage = room.getMyPitDamage();
         assertTrue(damage >= 1 && damage <= 20);
         hero.takeDamage(damage);
@@ -138,8 +139,7 @@ public class RoomTest {
     @Test
     void testPitDamageCannotMakeHealthNegative() {
         final Room room = createPitRoom();
-        final Hero hero = new Hero("Test Hero", 1, 1, 1.0, 1, 1, 1.0);
-        room.applyPit(hero);
+        final Hero hero = new Warrior("Test Hero");        room.applyPit(hero);
         assertEquals(0, hero.getHitPoints());
         room.applyPit(hero);
         assertEquals(0, hero.getHitPoints());
@@ -151,8 +151,7 @@ public class RoomTest {
         final Room room = new Room();
         room.setMyEntrance(true);
         room.setMyEntrance(false);
-        final Hero hero = new Hero("Test Hero", 100, 1, 1.0, 1, 1, 1.0);
-        hero.setHitPoints(50);
+        final Hero hero = new Warrior("Test Hero");        hero.setHitPoints(50);
         assertFalse(room.getMyHasPit());
         room.applyPit(hero);
         assertEquals(50, hero.getHitPoints());
