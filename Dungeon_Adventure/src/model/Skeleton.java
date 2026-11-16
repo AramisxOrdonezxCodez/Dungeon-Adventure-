@@ -4,6 +4,8 @@
  */
 package model;
 
+import data.MonsterDefinition;
+
 /**
  * A balanced monster with moderate damage and a fair chance to heal.
  *
@@ -24,5 +26,14 @@ public class Skeleton extends Monster {
      */
     public Skeleton() {
         super(DEFINITION);
+    }
+
+    /**
+     * Constructs a skeleton at full health using stats loaded from the database.
+     *
+     * @param theDefinition the stats for this skeleton
+     */
+    public Skeleton(final MonsterDefinition theDefinition) {
+        super(theDefinition);
     }
 }

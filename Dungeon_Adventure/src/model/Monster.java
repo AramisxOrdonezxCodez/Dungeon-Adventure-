@@ -4,6 +4,7 @@
  */
 package model;
 
+import data.MonsterDefinition;
 import java.util.Random;
 
 /**
