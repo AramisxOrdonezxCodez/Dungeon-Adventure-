@@ -3,7 +3,7 @@ package view;
 import model.Dungeon;
 import model.Hero;
 
-public class View {
+public class GameView {
     public void displayMainMenu() {
 
         System.out.println(" DUNGEON ADVENTURE");
