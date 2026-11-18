@@ -6,10 +6,10 @@ package test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import data.MonsterDefinition;
 import model.Direction;
 import model.Hero;
 import model.Monster;
-import model.MonsterDefinition;
 import model.Pillar;
 import model.Priestess;
 import model.Room;

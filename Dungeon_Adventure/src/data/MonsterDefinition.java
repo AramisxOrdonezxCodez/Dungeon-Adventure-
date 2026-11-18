@@ -2,7 +2,7 @@
  * TCSS 360 - Dungeon Adventure
  * Zachary Adams
  */
-package model;
+package data;
 
 /**
  * Holds the stats that describe one kind of monster.

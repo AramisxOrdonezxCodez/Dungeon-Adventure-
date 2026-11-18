@@ -4,6 +4,8 @@
  */
 package model;
 
+import data.MonsterDefinition;
+
 /**
  * A slow, heavily armored monster that hits hard but rarely heals.
  *
@@ -24,5 +26,14 @@ public class Ogre extends Monster {
      */
     public Ogre() {
         super(DEFINITION);
+    }
+
+    /**
+     * Constructs an ogre at full health using stats loaded from the database.
+     *
+     * @param theDefinition the stats for this ogre
+     */
+    public Ogre(final MonsterDefinition theDefinition) {
+        super(theDefinition);
     }
 }

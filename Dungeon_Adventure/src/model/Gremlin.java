@@ -4,6 +4,8 @@
  */
 package model;
 
+import data.MonsterDefinition;
+
 /**
  * A small, fast monster that deals light damage but heals often.
  *
@@ -24,5 +26,14 @@ public class Gremlin extends Monster {
      */
     public Gremlin() {
         super(DEFINITION);
+    }
+
+    /**
+     * Constructs a gremlin at full health using stats loaded from the database.
+     *
+     * @param theDefinition the stats for this gremlin
+     */
+    public Gremlin(final MonsterDefinition theDefinition) {
+        super(theDefinition);
     }
 }
