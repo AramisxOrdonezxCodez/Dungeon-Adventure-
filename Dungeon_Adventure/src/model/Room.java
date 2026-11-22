@@ -14,7 +14,7 @@ import java.util.Random;
  * Stores a monster supplied by the game; item collection and effects remain separate.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-14
+ * @version 2026-11-22
  */
 public class Room implements Serializable {
 
@@ -22,7 +22,7 @@ public class Room implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** The roll that causes a room feature to be present. */
-    private static final int POSSIBLE_MODS = 1;
+    private static final int FEATURE_ROLL = 1;
 
     /** Number of equally likely rolls, giving each feature a ten percent chance. */
     private static final int CHANCE_OUTCOMES = 10;
@@ -36,7 +36,7 @@ public class Room implements Serializable {
     /** Error message for a missing door direction. */
     private static final String NULL_DIRECTION_MESSAGE = "Direction must not be null.";
 
-    /** Error message for a missing hero during potion collection. */
+    /** Error message for a missing hero during a room interaction. */
     private static final String NULL_HERO_MESSAGE = "Hero cannot be null.";
 
     /** Random number generator shared by rooms. */
@@ -79,18 +79,16 @@ public class Room implements Serializable {
      */
     public Room() {
         myDoors = EnumSet.noneOf(Direction.class);
-        myIsEntrance = false;
-        myIsExit = false;
-        setUpMods();
+        generateContents();
     }
 
     /**
      * Independently generates potion and pit presence and assigns fixed pit damage.
      */
-    private void setUpMods() {
-        myHasHealingPotion = generateMods();
-        myHasVisionPotion = generateMods();
-        myHasPit = generateMods();
+    private void generateContents() {
+        myHasHealingPotion = generateFeature();
+        myHasVisionPotion = generateFeature();
+        myHasPit = generateFeature();
         myPitDamage = 0;
         if (myHasPit) {
             myPitDamage = RANDOM.nextInt(MAX_PIT_DAMAGE - MIN_PIT_DAMAGE + 1)
@@ -103,9 +101,9 @@ public class Room implements Serializable {
      *
      * @return true if the feature should be present; false otherwise
      */
-    private boolean generateMods() {
+    private boolean generateFeature() {
         final int chance = RANDOM.nextInt(CHANCE_OUTCOMES) + 1;
-        return chance == POSSIBLE_MODS;
+        return chance == FEATURE_ROLL;
     }
 
     /**
@@ -117,27 +115,23 @@ public class Room implements Serializable {
         return myHasHealingPotion;
     }
 
-
     /**
      * Collects a healing potion from the room
      * and adds it to the hero's inventory.
      *
      * @param theHero the hero collecting the potion
-     * @return true if a potion was collected
+     * @return true if a potion was collected; false if none was present
+     * @throws IllegalArgumentException if the hero is null
      */
     public boolean collectHealingPotion(final Hero theHero) {
-        if (theHero == null) {
-            throw new IllegalArgumentException(NULL_HERO_MESSAGE);
-        }
+        validateHero(theHero);
 
         if (!myHasHealingPotion) {
             return false;
         }
 
-        final Item healingPotion = new Item(
-                Hero.HEALING_POTION_NAME,
-                "Restores 5-15 health points."
-        );
+        final Item healingPotion = new Item(Hero.HEALING_POTION_NAME,
+                "Restores 5-15 health points.");
 
         theHero.getInventory().addItem(healingPotion);
         myHasHealingPotion = false;
@@ -145,45 +139,38 @@ public class Room implements Serializable {
         return true;
     }
 
-
     /**
      * Reports whether this room contains a vision potion.
      *
      * @return true if a vision potion is present; false otherwise
      */
     public boolean getMyHasVisionPotion() {
-
         return myHasVisionPotion;
     }
-
 
     /**
      * Collects a vision potion from the room
      * and adds it to the hero's inventory.
      *
      * @param theHero the hero collecting the potion
-     * @return true if a potion was collected
+     * @return true if a potion was collected; false if none was present
+     * @throws IllegalArgumentException if the hero is null
      */
     public boolean collectVisionPotion(final Hero theHero) {
-        if (theHero == null) {
-            throw new IllegalArgumentException(NULL_HERO_MESSAGE);
-        }
+        validateHero(theHero);
 
         if (!myHasVisionPotion) {
             return false;
         }
 
-        final Item visionPotion = new Item(
-                "Vision Potion",
-                "Reveals nearby rooms in the dungeon."
-        );
+        final Item visionPotion = new Item("Vision Potion",
+                "Reveals nearby rooms in the dungeon.");
 
         theHero.getInventory().addItem(visionPotion);
         myHasVisionPotion = false;
 
         return true;
     }
-
 
     /**
      * Reports whether this room contains a pit.
@@ -213,9 +200,7 @@ public class Room implements Serializable {
      * @throws IllegalArgumentException if the hero is null
      */
     public void applyPit(final Hero theHero) {
-        if (theHero == null) {
-            throw new IllegalArgumentException("Hero must not be null.");
-        }
+        validateHero(theHero);
         if (myHasPit) {
             theHero.setHitPoints(theHero.getHitPoints() - myPitDamage);
         }
@@ -442,6 +427,36 @@ public class Room implements Serializable {
     }
 
     /**
+     * Rejects a missing hero before any room contents are changed.
+     *
+     * @param theHero the hero interacting with the room
+     * @throws IllegalArgumentException if the hero is null
+     */
+    private void validateHero(final Hero theHero) {
+        if (theHero == null) {
+            throw new IllegalArgumentException(NULL_HERO_MESSAGE);
+        }
+    }
+
+    /**
+     * Returns the wall or door symbol for one side of the room.
+     *
+     * @param theDirection the side to draw
+     * @return a star for a wall, dash for a north/south door, or bar for an east/west door
+     */
+    private char getDoorSymbol(final Direction theDirection) {
+        char symbol = '*';
+        if (hasDoor(theDirection)) {
+            if (theDirection == Direction.NORTH || theDirection == Direction.SOUTH) {
+                symbol = '-';
+            } else {
+                symbol = '|';
+            }
+        }
+        return symbol;
+    }
+
+    /**
      * Builds a three-line drawing of the room's doors and contents.
      * Walls use stars, north/south doors use dashes, and east/west doors use bars.
      * This method does not change the room or generate new contents.
@@ -450,23 +465,10 @@ public class Room implements Serializable {
      */
     @Override
     public String toString() {
-        char north = '*';
-        char south = '*';
-        char east = '*';
-        char west = '*';
-
-        if (hasDoor(Direction.NORTH)) {
-            north = '-';
-        }
-        if (hasDoor(Direction.SOUTH)) {
-            south = '-';
-        }
-        if (hasDoor(Direction.EAST)) {
-            east = '|';
-        }
-        if (hasDoor(Direction.WEST)) {
-            west = '|';
-        }
+        final char north = getDoorSymbol(Direction.NORTH);
+        final char south = getDoorSymbol(Direction.SOUTH);
+        final char east = getDoorSymbol(Direction.EAST);
+        final char west = getDoorSymbol(Direction.WEST);
 
         final StringBuilder result = new StringBuilder();
         result.append('*').append(north).append('*').append('\n');
