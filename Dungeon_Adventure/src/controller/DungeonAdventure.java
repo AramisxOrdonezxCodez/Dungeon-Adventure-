@@ -329,7 +329,8 @@ public class DungeonAdventure {
         final Hero hero = myState.getHero();
         boolean turnTaken = false;
         while (!turnTaken) {
-            final String choice = prompt("1) Attack  2) Special skill  3) Healing potion");
+            myView.displayCombatMenu();
+            final String choice = readLine();
             if (choice == null || "1".equals(choice)) {
                 myView.displayMessage(hero.attack(theMonster));
                 turnTaken = true;
@@ -404,8 +405,8 @@ public class DungeonAdventure {
     }
 
     /**
-     * Loads a saved game from a slot the player chooses. During a game,
-     * asks first if loading would lose unsaved progress.
+     * Loads a saved game from a slot the player chooses. During a game
+     * asks first if loading would lose unsaved progress
      */
     private void load() {
         final boolean inGame = myState != null
@@ -434,7 +435,7 @@ public class DungeonAdventure {
      * @return the chosen slot, or 0 if the player cancels
      */
     private int promptSlot(final String thePrompt) {
-        myView.displayMessage(String.join("\n", mySaveService.listSlots()));
+        myView.displaySaveSlots(mySaveService.listSlots());
         int slot = -1;
         while (slot == -1) {
             final String choice = prompt(thePrompt + " (" + FIRST_SLOT + "-"
@@ -469,13 +470,12 @@ public class DungeonAdventure {
         if (!myState.getHero().isAlive()) {
             myState.setPhase(GamePhase.DEFEAT);
             myHasUnsavedProgress = false;
-            myView.displayMessage("\nYou have fallen in the dungeon. Game over.");
+            myView.displayDefeat();
             myView.displayMessage(myState.getDungeon().toString());
         } else if (room.getIsExit() && myState.hasAllPillars()) {
             myState.setPhase(GamePhase.VICTORY);
             myHasUnsavedProgress = false;
-            myView.displayMessage("\nYou escape the dungeon with all four Pillars of OO. "
-                    + "You win!");
+            myView.displayVictory();
             myView.displayMessage(myState.getDungeon().toString());
         } else if (room.getIsExit()) {
             myView.displayMessage("You found the exit, but you still need "
@@ -485,12 +485,17 @@ public class DungeonAdventure {
     }
 
     /**
-     * Shows the hero's stats and the pillars collected so far.
+     * Shows the hero's stats and the pillars collected so far
      */
     private void showHeroStatus() {
         myView.displayHeroStats(myState.getHero());
-        myView.displayMessage("Pillars: " + myState.getCollectedPillars().size() + "/"
-                + Pillar.values().length + " " + myState.getCollectedPillars());
+
+        myView.displayInventory(myState.getHero());
+
+        myView.displayMessage("Pillars: "
+                + myState.getCollectedPillars().size() + "/"
+                + Pillar.values().length + " "
+                + myState.getCollectedPillars());
     }
 
     /**
