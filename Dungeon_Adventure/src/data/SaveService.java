@@ -21,11 +21,23 @@ public class SaveService {
     // Folder where saved games are stored
     private static final String SAVE_DIR = "saves";
 
+    private final Path mySaveDirectory;
+
 
     // Creates a new SaveService
 
     public SaveService() {
 
+        this(Paths.get(SAVE_DIR));
+    }
+
+    public SaveService(final Path theSaveDirectory) {
+        if (theSaveDirectory == null) {
+            throw new IllegalArgumentException(
+                    "Save directory cannot be null.");
+        }
+
+        mySaveDirectory = theSaveDirectory;
     }
 
     /**
@@ -162,7 +174,6 @@ public class SaveService {
      * @return path to the save file
      */
     private Path getSavePath(final int theSlot) {
-
-        return Paths.get(SAVE_DIR, "slot_" + theSlot + ".dat");
+        return mySaveDirectory.resolve("slot_" + theSlot + ".dat");
     }
 }
