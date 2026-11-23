@@ -13,7 +13,7 @@ import java.util.EnumSet;
  * Gameplay decides when to move, fight, collect items, and change phases.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-14
+ * @version 2026-11-22
  */
 public class GameState implements Serializable {
 
@@ -58,17 +58,7 @@ public class GameState implements Serializable {
      * @throws IllegalArgumentException if the hero or dungeon is null
      */
     public GameState(final Hero theHero, final Dungeon theDungeon) {
-        if (theHero == null) {
-            throw new IllegalArgumentException(NULL_HERO_MESSAGE);
-        }
-        if (theDungeon == null) {
-            throw new IllegalArgumentException(NULL_DUNGEON_MESSAGE);
-        }
-        myHero = theHero;
-        myDungeon = theDungeon;
-        myPhase = GamePhase.MAIN_MENU;
-        myCollectedPillars = EnumSet.noneOf(Pillar.class);
-        placeHeroAtEntrance();
+        initializeGame(theHero, theDungeon, GamePhase.MAIN_MENU);
     }
 
     /**
@@ -80,6 +70,20 @@ public class GameState implements Serializable {
      * @throws IllegalArgumentException if the hero or dungeon is null
      */
     public void startGame(final Hero theHero, final Dungeon theDungeon) {
+        initializeGame(theHero, theDungeon, GamePhase.EXPLORATION);
+    }
+
+    /**
+     * Validates the supplied objects and initializes shared game information.
+     * The caller chooses the initial phase for construction or starting exploration.
+     *
+     * @param theHero the selected hero
+     * @param theDungeon the dungeon to use
+     * @param thePhase the initial phase supplied internally
+     * @throws IllegalArgumentException if the hero or dungeon is null
+     */
+    private void initializeGame(final Hero theHero, final Dungeon theDungeon,
+                                final GamePhase thePhase) {
         if (theHero == null) {
             throw new IllegalArgumentException(NULL_HERO_MESSAGE);
         }
@@ -88,10 +92,9 @@ public class GameState implements Serializable {
         }
         myHero = theHero;
         myDungeon = theDungeon;
-        myPhase = GamePhase.EXPLORATION;
+        myPhase = thePhase;
         myCollectedPillars = EnumSet.noneOf(Pillar.class);
         placeHeroAtEntrance();
-
     }
 
     /**
@@ -127,8 +130,7 @@ public class GameState implements Serializable {
             throw new IllegalArgumentException("Direction cannot be null.");
         }
         boolean moved = false;
-        if (myPhase == GamePhase.EXPLORATION && myHero.isAlive()
-                && getCurrentRoom().hasDoor(theDirection)) {
+        if (isExploring() && getCurrentRoom().hasDoor(theDirection)) {
             int row = myHeroRow;
             int column = myHeroColumn;
             final Direction opposite;
@@ -171,11 +173,31 @@ public class GameState implements Serializable {
      */
     private boolean canEnterRoom(final int theRow, final int theColumn,
                                  final Direction theDoor) {
-        if (theRow < 0 || theRow >= myDungeon.getRowCount()
-                || theColumn < 0 || theColumn >= myDungeon.getColumnCount()) {
+        if (!isInsideDungeon(theRow, theColumn)) {
             return false;
         }
         return myDungeon.getRoom(theRow, theColumn).hasDoor(theDoor);
+    }
+
+    /**
+     * Checks whether the hero is alive and currently exploring.
+     *
+     * @return true if movement and saving are permitted by the current state
+     */
+    private boolean isExploring() {
+        return myPhase == GamePhase.EXPLORATION && myHero.isAlive();
+    }
+
+    /**
+     * Checks coordinates without changing the hero's position.
+     *
+     * @param theRow the requested row
+     * @param theColumn the requested column
+     * @return true if both coordinates are inside the dungeon
+     */
+    private boolean isInsideDungeon(final int theRow, final int theColumn) {
+        return theRow >= 0 && theRow < myDungeon.getRowCount()
+                && theColumn >= 0 && theColumn < myDungeon.getColumnCount();
     }
 
     /**
@@ -185,7 +207,7 @@ public class GameState implements Serializable {
      * @return true if the hero is alive and the phase is exploration
      */
     public boolean canSave() {
-        return myPhase == GamePhase.EXPLORATION && myHero.isAlive();
+        return isExploring();
     }
 
     /**
@@ -238,7 +260,8 @@ public class GameState implements Serializable {
     }
 
     /**
-     * Updates the stored position after gameplay approves a move through a door.
+     * Updates the stored position after checking the coordinates.
+     * This setter does not check doors or reveal rooms; normal movement uses moveHero.
      *
      * @param theRow the destination row
      * @param theColumn the destination column
@@ -250,8 +273,7 @@ public class GameState implements Serializable {
             throw new IllegalStateException(MISSING_DUNGEON_MESSAGE);
         }
 
-        if (theRow < 0 || theRow >= myDungeon.getRowCount()
-                || theColumn < 0 || theColumn >= myDungeon.getColumnCount()) {
+        if (!isInsideDungeon(theRow, theColumn)) {
             throw new IllegalArgumentException("The coordinates are out of bounds");
         }
         myHeroRow = theRow;

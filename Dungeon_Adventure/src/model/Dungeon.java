@@ -14,7 +14,7 @@ import java.util.Random;
  * Places special rooms, pillars, and monsters, validates connectivity, and draws the map.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-14
+ * @version 2026-11-22
  */
 public class Dungeon implements Serializable {
 
@@ -36,7 +36,7 @@ public class Dungeon implements Serializable {
     /** Number of monster types available for room placement. */
     private static final int MONSTER_TYPES = 3;
 
-    /** Random number generator used for special-room and monster placement. */
+    /** Random number generator used for room placement and maze generation. */
     private static final Random RANDOM = new Random();
 
     /** Row of the entrance. */
@@ -110,7 +110,6 @@ public class Dungeon implements Serializable {
         return myRooms[theRow][theColumn];
     }
 
-
     /**
      * Reveals the current room and the eight
      * surrounding rooms when using a vision potion.
@@ -119,23 +118,26 @@ public class Dungeon implements Serializable {
      * @param theColumn the hero's current column
      * @throws IllegalArgumentException if the coordinates are outside the dungeon
      */
-    public void revealSurroundingRooms(final int theRow,
-                                       final int theColumn) {
-
-        // Make sure the starting position is valid.
+    public void revealSurroundingRooms(final int theRow, final int theColumn) {
         getRoom(theRow, theColumn);
+        revealArea(theRow, theColumn);
+    }
 
-        for (int row = theRow - 1; row <= theRow + 1; row++) {
-            for (int column = theColumn - 1;
-                 column <= theColumn + 1; column++) {
-
-                // Check that the room is inside the dungeon.
-                if (row >= 0 && row < myRooms.length
-                        && column >= 0
-                        && column < myRooms[row].length) {
-
-                    myRooms[row][column].reveal();
-                }
+    /**
+     * Reveals the area around an already validated position, clipped to the grid.
+     * Room.reveal changes visibility only; doors and contents remain unchanged.
+     *
+     * @param theRow the valid center row
+     * @param theColumn the valid center column
+     */
+    private void revealArea(final int theRow, final int theColumn) {
+        final int firstRow = Math.max(0, theRow - 1);
+        final int lastRow = Math.min(getRowCount() - 1, theRow + 1);
+        final int firstColumn = Math.max(0, theColumn - 1);
+        final int lastColumn = Math.min(getColumnCount() - 1, theColumn + 1);
+        for (int row = firstRow; row <= lastRow; row++) {
+            for (int column = firstColumn; column <= lastColumn; column++) {
+                myRooms[row][column].reveal();
             }
         }
     }
@@ -161,13 +163,12 @@ public class Dungeon implements Serializable {
         getRoom(theRow, theColumn);
 
         if (theHero.getInventory().useVisionPotion()) {
-            revealSurroundingRooms(theRow, theColumn);
+            revealArea(theRow, theColumn);
             return true;
         }
 
         return false;
     }
-
 
     /**
      * Places the entrance, exit, and each pillar in distinct randomly chosen rooms.
@@ -315,12 +316,9 @@ public class Dungeon implements Serializable {
      * Also supports a separate traversal of existing doors to validate connectivity.
      *
      * @author Kevin Munoz-Rivera
-     * @version 2026-11-14
+     * @version 2026-11-22
      */
     private static final class MazeGenerator {
-
-        /** Random number generator used to choose neighboring directions. */
-        private static final Random RANDOM = new Random();
 
         /** Fresh rectangular room grid supplied by Dungeon. */
         private final Room[][] myRooms;
@@ -399,15 +397,14 @@ public class Dungeon implements Serializable {
          * @return true if every room was visited; false otherwise
          */
         private boolean allRoomsVisited() {
-            boolean allVisited = true;
             for (int row = 0; row < myVisited.length; row++) {
                 for (int column = 0; column < myVisited[row].length; column++) {
                     if (!myVisited[row][column]) {
-                        allVisited = false;
+                        return false;
                     }
                 }
             }
-            return allVisited;
+            return true;
         }
 
         /**

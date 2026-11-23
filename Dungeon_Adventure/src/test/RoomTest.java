@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import data.MonsterDefinition;
 import model.Direction;
 import model.Hero;
+import model.Item;
 import model.Monster;
 import model.Pillar;
 import model.Priestess;
@@ -18,10 +19,10 @@ import model.Warrior;
 import org.junit.jupiter.api.Test;
 
 /**
- * Basic tests for room doors and special rooms.
+ * Tests room contents, collection, doors, special rooms, and invalid interactions.
  *
  * @author Kevin Munoz-Rivera
- * @version 2026-11-14
+ * @version 2026-11-22
  */
 public class RoomTest {
 
@@ -261,5 +262,234 @@ public class RoomTest {
         assertEquals(visionPotion, room.getMyHasVisionPotion());
         assertEquals(pit, room.getMyHasPit());
         assertEquals(damage, room.getMyPitDamage());
+    }
+
+    /** Checks every door orientation and that adding the same door twice changes nothing. */
+    @Test
+    void testDoorDirectionsAndDuplicates() {
+        final Direction[] directions = {Direction.NORTH, Direction.SOUTH,
+            Direction.EAST, Direction.WEST};
+        final String[] drawings = {"*-*\n* *\n***", "***\n* *\n*-*",
+            "***\n* |\n***", "***\n| *\n***"};
+        for (int index = 0; index < directions.length; index++) {
+            final Room room = createEmptyRoom();
+            room.addDoor(directions[index]);
+            room.addDoor(directions[index]);
+            assertEquals(drawings[index], room.toString());
+            for (final Direction direction : directions) {
+                assertEquals(direction == directions[index], room.hasDoor(direction));
+            }
+        }
+        final Room room = createEmptyRoom();
+        for (final Direction direction : directions) {
+            room.addDoor(direction);
+        }
+        assertEquals("*-*\n| |\n*-*", room.toString());
+    }
+
+    /** Checks that null directions are rejected without changing existing doors. */
+    @Test
+    void testNullDirectionsPreserveRoom() {
+        final Room room = createEmptyRoom();
+        room.addDoor(Direction.WEST);
+        final String before = room.toString();
+        assertThrows(IllegalArgumentException.class, () -> room.addDoor(null));
+        assertThrows(IllegalArgumentException.class, () -> room.hasDoor(null));
+        assertEquals(before, room.toString());
+        assertTrue(room.hasDoor(Direction.WEST));
+    }
+
+    /** Checks the reverse entrance/exit restriction without losing the exit role. */
+    @Test
+    void testExitCannotBeEntrance() {
+        final Room room = new Room();
+        room.setExit(true);
+        assertThrows(IllegalStateException.class, () -> room.setMyEntrance(true));
+        assertTrue(room.getIsExit());
+        assertFalse(room.getIsEntrance());
+        assertEquals("***\n*O*\n***", room.toString());
+    }
+
+    /** Checks that special rooms clear contents but retain doors and visibility. */
+    @Test
+    void testSpecialRoomsPreserveDoorsAndVisibility() {
+        for (int role = 0; role < 2; role++) {
+            final Room room = createPitRoom();
+            room.setMonster(createMonster());
+            room.setPillar(Pillar.INHERITANCE);
+            room.addDoor(Direction.SOUTH);
+            room.reveal();
+            if (role == 0) {
+                room.setMyEntrance(true);
+                room.setMyEntrance(false);
+            } else {
+                room.setExit(true);
+                room.setExit(false);
+            }
+            assertNull(room.getMonster());
+            assertNull(room.getPillar());
+            assertFalse(room.getHasHealingPotion());
+            assertFalse(room.getMyHasVisionPotion());
+            assertFalse(room.getMyHasPit());
+            assertEquals(0, room.getMyPitDamage());
+            assertFalse(room.getIsEntrance());
+            assertFalse(room.getIsExit());
+            assertTrue(room.hasDoor(Direction.SOUTH));
+            assertTrue(room.isVisible());
+            assertEquals("***\n* *\n*-*", room.toString());
+        }
+    }
+
+    /** Checks pillar rejection in both special roles and permits clearing null contents. */
+    @Test
+    void testSpecialRoomsRejectPillars() {
+        final Room entrance = new Room();
+        entrance.setMyEntrance(true);
+        final Room exit = new Room();
+        exit.setExit(true);
+        final Room[] rooms = {entrance, exit};
+        for (final Room room : rooms) {
+            for (final Pillar pillar : Pillar.values()) {
+                assertThrows(IllegalStateException.class, () -> room.setPillar(pillar));
+                assertNull(room.getPillar());
+            }
+            assertDoesNotThrow(() -> room.setPillar(null));
+            assertDoesNotThrow(() -> room.setMonster(null));
+            assertNull(room.collectPillar());
+        }
+    }
+
+    /** Checks that absent potions do not change existing inventory items or health. */
+    @Test
+    void testCollectAbsentPotions() {
+        final Room room = createEmptyRoom();
+        final Hero hero = new Warrior("Collector");
+        final Item existing = new Item("Existing item", "Keep this item.");
+        hero.getInventory().addItem(existing);
+        hero.setHitPoints(50);
+        assertFalse(room.collectHealingPotion(hero));
+        assertFalse(room.collectVisionPotion(hero));
+        assertEquals(1, hero.getInventory().getItemCount());
+        assertSame(existing, hero.getInventory().getItems().get(0));
+        assertEquals(50, hero.getHitPoints());
+    }
+
+    /** Checks a healing potion is transferred exactly once without applying its effect. */
+    @Test
+    void testHealingPotionCollectedOnlyOnce() {
+        final Room room = createPotionRoom(true);
+        final Hero hero = new Warrior("Collector");
+        hero.setHitPoints(50);
+        final boolean vision = room.getMyHasVisionPotion();
+        final boolean pit = room.getMyHasPit();
+        final int damage = room.getMyPitDamage();
+        final Monster monster = createMonster();
+        room.setMonster(monster);
+        room.setPillar(Pillar.ABSTRACTION);
+        assertTrue(room.collectHealingPotion(hero));
+        assertFalse(room.collectHealingPotion(hero));
+        assertFalse(room.getHasHealingPotion());
+        assertEquals(1, hero.getInventory().getItemCount());
+        assertEquals("Healing Potion", hero.getInventory().getItems().get(0).getName());
+        assertEquals(50, hero.getHitPoints());
+        assertEquals(vision, room.getMyHasVisionPotion());
+        assertEquals(pit, room.getMyHasPit());
+        assertEquals(damage, room.getMyPitDamage());
+        assertSame(monster, room.getMonster());
+        assertEquals(Pillar.ABSTRACTION, room.getPillar());
+    }
+
+    /** Checks a vision potion is transferred once and collection does not reveal the room. */
+    @Test
+    void testVisionPotionCollectedOnlyOnce() {
+        final Room room = createPotionRoom(false);
+        final Hero hero = new Warrior("Collector");
+        final boolean healing = room.getHasHealingPotion();
+        final boolean pit = room.getMyHasPit();
+        final int damage = room.getMyPitDamage();
+        assertFalse(room.isVisible());
+        assertTrue(room.collectVisionPotion(hero));
+        assertFalse(room.collectVisionPotion(hero));
+        assertFalse(room.getMyHasVisionPotion());
+        assertEquals(1, hero.getInventory().getItemCount());
+        assertEquals("Vision Potion", hero.getInventory().getItems().get(0).getName());
+        assertFalse(room.isVisible());
+        assertEquals(healing, room.getHasHealingPotion());
+        assertEquals(pit, room.getMyHasPit());
+        assertEquals(damage, room.getMyPitDamage());
+    }
+
+    /** Checks null heroes are rejected before removing either available potion. */
+    @Test
+    void testNullCollectorsPreservePotions() {
+        final Room healingRoom = createPotionRoom(true);
+        final Room visionRoom = createPotionRoom(false);
+        assertThrows(IllegalArgumentException.class,
+            () -> healingRoom.collectHealingPotion(null));
+        assertThrows(IllegalArgumentException.class,
+            () -> visionRoom.collectVisionPotion(null));
+        assertTrue(healingRoom.getHasHealingPotion());
+        assertTrue(visionRoom.getMyHasVisionPotion());
+        final Room emptyRoom = createEmptyRoom();
+        assertThrows(IllegalArgumentException.class,
+            () -> emptyRoom.collectHealingPotion(null));
+        assertThrows(IllegalArgumentException.class,
+            () -> emptyRoom.collectVisionPotion(null));
+    }
+
+    /** Checks repeated rendering and revealing preserve the existing room contents. */
+    @Test
+    void testRenderingAndRevealPreserveContents() {
+        final Room room = createPitRoom();
+        room.setPillar(Pillar.POLYMORPHISM);
+        final Monster monster = createMonster();
+        room.setMonster(monster);
+        final int damage = room.getMyPitDamage();
+        final boolean healing = room.getHasHealingPotion();
+        final boolean vision = room.getMyHasVisionPotion();
+        assertEquals("***\n*M*\n***", room.toString());
+        assertFalse(room.isVisible());
+        room.reveal();
+        room.reveal();
+        assertEquals("***\n*M*\n***", room.toString());
+        assertTrue(room.isVisible());
+        assertEquals(damage, room.getMyPitDamage());
+        assertTrue(room.getMyHasPit());
+        assertEquals(healing, room.getHasHealingPotion());
+        assertEquals(vision, room.getMyHasVisionPotion());
+        assertEquals(Pillar.POLYMORPHISM, room.getPillar());
+        assertSame(monster, room.getMonster());
+    }
+
+    /**
+     * Creates an ordinary empty room using the public entrance operation.
+     *
+     * @return an empty, unrevealed room without doors
+     */
+    private Room createEmptyRoom() {
+        final Room room = new Room();
+        room.setMyEntrance(true);
+        room.setMyEntrance(false);
+        return room;
+    }
+
+    /**
+     * Finds a generated room with the requested potion, failing if none is generated.
+     *
+     * @param theHealing true to find healing; false to find vision
+     * @return a room containing the requested potion
+     * @throws AssertionError if no matching room appears within the attempt limit
+     */
+    private Room createPotionRoom(final boolean theHealing) {
+        final int maximumAttempts = 1000;
+        for (int attempt = 0; attempt < maximumAttempts; attempt++) {
+            final Room room = new Room();
+            if (theHealing && room.getHasHealingPotion()
+                    || !theHealing && room.getMyHasVisionPotion()) {
+                return room;
+            }
+        }
+        throw new AssertionError("No requested potion generated in " + maximumAttempts
+                + " rooms.");
     }
 }
